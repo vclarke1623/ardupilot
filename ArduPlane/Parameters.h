@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include <AP_Common/AP_Common.h>
 
@@ -54,6 +54,10 @@ public:
         k_param_landing,
         k_param_NavEKF3,
         k_param_BoardConfig_CAN,
+
+        //UWAFSL START
+        k_param_kp_phi = 9,
+        //UWAFSL END
 
         // Misc
         //
@@ -134,8 +138,8 @@ public:
         k_param_override_channel,
         k_param_stall_prevention,
         k_param_optflow,
-        k_param_cli_enabled_old, // unused - CLI removed
-        k_param_trim_rc_at_start, // unused
+        k_param_cli_enabled,
+        k_param_trim_rc_at_start,
         k_param_hil_mode,
         k_param_land_disarm_delay,  // unused - moved to AP_Landing
         k_param_glide_slope_threshold,
@@ -265,17 +269,17 @@ public:
         k_param_throttle_fs_value,
         k_param_throttle_cruise,
 
-        k_param_fs_action_short,
-        k_param_fs_action_long,
+        k_param_short_fs_action,
+        k_param_long_fs_action,
         k_param_gcs_heartbeat_fs_enabled,
         k_param_throttle_slewrate,
         k_param_throttle_suppress_manual,
         k_param_throttle_passthru_stabilize,
         k_param_rc_12_old,
-        k_param_fs_batt_voltage, // unused - moved to AP_BattMonitor
-        k_param_fs_batt_mah,     // unused - moved to AP_BattMonitor
-        k_param_fs_timeout_short,
-        k_param_fs_timeout_long,
+        k_param_fs_batt_voltage,
+        k_param_fs_batt_mah,
+        k_param_short_fs_timeout,
+        k_param_long_fs_timeout,
         k_param_rc_13_old,
         k_param_rc_14_old,
         k_param_tuning,
@@ -361,11 +365,15 @@ public:
     AP_Int16 sysid_this_mav;
     AP_Int16 sysid_my_gcs;
     AP_Int8 telem_delay;
+#if CLI_ENABLED == ENABLED
+    AP_Int8 cli_enabled;
+#endif
 
     AP_Float hil_err_limit;
 
     AP_Int8  rtl_autoland;
 
+    AP_Int8  trim_rc_at_start;
     AP_Int8  crash_accel_threshold;
 
     // Feed-forward gains
@@ -425,11 +433,13 @@ public:
     AP_Int16 use_reverse_thrust;
 
     // Failsafe
-    AP_Int8 fs_action_short;
-    AP_Int8 fs_action_long;
-    AP_Float fs_timeout_short;
-    AP_Float fs_timeout_long;
+    AP_Int8 short_fs_action;
+    AP_Int8 long_fs_action;
+    AP_Float short_fs_timeout;
+    AP_Float long_fs_timeout;
     AP_Int8 gcs_heartbeat_fs_enabled;
+    AP_Float fs_batt_voltage;
+    AP_Float fs_batt_mah;
 
     // Flight modes
     //
@@ -501,6 +511,10 @@ public:
 #endif
     AP_Int16 gcs_pid_mask;
     AP_Int8 parachute_channel;
+
+    //UWAFSL START
+    AP_Float kp_phi;
+    //UWAFSL END
 };
 
 /*
@@ -516,10 +530,8 @@ public:
     // button reporting library
     AP_Button button;
 
-#if STATS_ENABLED == ENABLED
     // vehicle statistics
     AP_Stats stats;
-#endif
 
     // internal combustion engine control
     AP_ICEngine ice_control;
@@ -541,15 +553,6 @@ public:
 
     // mask of channels to do manual pass-thru for
     AP_Int32 manual_rc_mask;
-
-    // home reset altitude threshold
-    AP_Int8 home_reset_threshold;
-
-#if GRIPPER_ENABLED == ENABLED
-    // Payload Gripper
-    AP_Gripper gripper;
-#endif
-
 };
 
 extern const AP_Param::Info var_info[];

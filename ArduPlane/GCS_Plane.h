@@ -2,6 +2,7 @@
 
 #include <GCS_MAVLink/GCS.h>
 #include "GCS_Mavlink.h"
+#include "config.h" // for CLI_ENABLED
 
 class GCS_Plane : public GCS
 {
@@ -25,5 +26,8 @@ public:
 private:
 
     GCS_MAVLINK_Plane _chan[MAVLINK_COMM_NUM_BUFFERS];
+
+    bool cli_enabled() const override;
+    AP_HAL::BetterStream* cliSerial() override;
 
 };

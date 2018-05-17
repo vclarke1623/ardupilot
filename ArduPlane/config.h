@@ -1,4 +1,4 @@
-//
+﻿//
 //////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////
 //
@@ -76,6 +76,37 @@
 // RADIO CONFIGURATION
 //////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////
+
+
+//////////////////////////////////////////////////////////////////////////////
+// Radio channel limits
+//
+// Note that these are not called out in APM_Config.h.reference.
+//
+#ifndef CH5_MIN
+ # define CH5_MIN        1000
+#endif
+#ifndef CH5_MAX
+ # define CH5_MAX        2000
+#endif
+#ifndef CH6_MIN
+ # define CH6_MIN        1000
+#endif
+#ifndef CH6_MAX
+ # define CH6_MAX        2000
+#endif
+#ifndef CH7_MIN
+ # define CH7_MIN        1000
+#endif
+#ifndef CH7_MAX
+ # define CH7_MAX        2000
+#endif
+#ifndef CH8_MIN
+ # define CH8_MIN        1000
+#endif
+#ifndef CH8_MAX
+ # define CH8_MAX        2000
+#endif
 
 
 #ifndef FLAP_1_PERCENT
@@ -186,6 +217,14 @@
 // FLIGHT AND NAVIGATION CONTROL
 //////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////////
+// Altitude measurement and control.
+//
+#ifndef ALTITUDE_MIX
+ # define ALTITUDE_MIX                   1
+#endif
+
 
 //////////////////////////////////////////////////////////////////////////////
 // AIRSPEED_CRUISE
@@ -308,6 +347,12 @@
  # define SCALING_SPEED          15.0
 #endif
 
+// use this to completely disable the CLI. We now default the CLI to
+// off on smaller boards.
+#ifndef CLI_ENABLED
+#define CLI_ENABLED ENABLED
+#endif
+
 // use this to disable geo-fencing
 #ifndef GEOFENCE_ENABLED
  # define GEOFENCE_ENABLED ENABLED
@@ -332,28 +377,12 @@
  # define RESET_SWITCH_CHAN_PWM 1750
 #endif
 
-#ifndef HIL_SUPPORT
-#if HAL_MINIMIZE_FEATURES
-# define HIL_SUPPORT DISABLED
-#else
-# define HIL_SUPPORT ENABLED
-#endif
-#endif
+#define HIL_SUPPORT ENABLED
 
 //////////////////////////////////////////////////////////////////////////////
 // Parachute release
 #ifndef PARACHUTE
 #define PARACHUTE ENABLED
-#endif
-
-//////////////////////////////////////////////////////////////////////////////
-// Payload Gripper
-#ifndef GRIPPER_ENABLED
- #if HAL_MINIMIZE_FEATURES
-  # define GRIPPER_ENABLED DISABLED
- #else 
-  # define GRIPPER_ENABLED ENABLED
- #endif
 #endif
 
 #if CONFIG_HAL_BOARD == HAL_BOARD_PX4 && !defined(CONFIG_ARCH_BOARD_PX4FMU_V4)
@@ -362,14 +391,8 @@
 # define HAVE_PX4_MIXER 0
 #endif
 
-#ifndef STATS_ENABLED
- # define STATS_ENABLED ENABLED
+//UWAFSL START
+#ifndef KP_PHI
+# define KP_PHI  0.6
 #endif
-
-#ifndef DEVO_TELEM_ENABLED
-#if HAL_MINIMIZE_FEATURES
- #define DEVO_TELEM_ENABLED DISABLED
-#else
- #define DEVO_TELEM_ENABLED ENABLED
-#endif
-#endif
+//UWAFSL END

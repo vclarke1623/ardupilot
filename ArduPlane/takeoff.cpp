@@ -32,8 +32,7 @@ bool Plane::auto_takeoff_check(void)
     }
 
     // Check for launch acceleration if set. NOTE: relies on TECS 50Hz processing
-    if (!takeoff_state.launchTimerStarted &&
-        !is_zero(g.takeoff_throttle_min_accel) &&
+    if (!is_zero(g.takeoff_throttle_min_accel) &&
         SpdHgt_Controller->get_VXdot() < g.takeoff_throttle_min_accel) {
         goto no_launch;
     }

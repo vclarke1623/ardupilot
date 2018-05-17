@@ -38,12 +38,9 @@ void Plane::set_control_channels(void)
         SRV_Channels::set_safety_limit(SRV_Channel::k_throttle, aparm.throttle_min<0?SRV_Channel::SRV_CHANNEL_LIMIT_TRIM:SRV_Channel::SRV_CHANNEL_LIMIT_MIN);
     }
 
-    if (!quadplane.enable) {
-        // setup correct scaling for ESCs like the UAVCAN PX4ESC which
-        // take a proportion of speed. For quadplanes we use AP_Motors
-        // scaling
-        g2.servo_channels.set_esc_scaling_for(SRV_Channel::k_throttle);
-    }
+    // setup correct scaling for ESCs like the UAVCAN PX4ESC which
+    // take a proportion of speed
+    g2.servo_channels.set_esc_scaling_for(SRV_Channel::k_throttle);
 }
 
 /*
@@ -93,7 +90,7 @@ void Plane::init_rc_out_aux()
     update_aux();
     SRV_Channels::enable_aux_servos();
 
-    SRV_Channels::cork();
+    hal.rcout->cork();
     
     // Initialization of servo outputs
     SRV_Channels::output_trim_all();
@@ -174,28 +171,40 @@ void Plane::rudder_arm_disarm_check()
 
 void Plane::read_radio()
 {
-    if (!RC_Channels::read_input()) {
-        control_failsafe();
+    if (!hal.rcin->new_input()) {
+        control_failsafe(channel_throttle->get_radio_in());
         return;
     }
 
-    if(!failsafe.rc_failsafe)
+    if(!failsafe.ch3_failsafe)
     {
         failsafe.AFS_last_valid_rc_ms = millis();
     }
 
     failsafe.last_valid_rc_ms = millis();
 
+    elevon.ch1_temp = channel_roll->read();
+    elevon.ch2_temp = channel_pitch->read();
+    uint16_t pwm_roll, pwm_pitch;
+
+    pwm_roll = elevon.ch1_temp;
+    pwm_pitch = elevon.ch2_temp;
+
+    RC_Channels::set_pwm_all();
+    
     if (control_mode == TRAINING) {
         // in training mode we don't want to use a deadzone, as we
         // want manual pass through when not exceeding attitude limits
-        channel_roll->recompute_pwm_no_deadzone();
-        channel_pitch->recompute_pwm_no_deadzone();
-        channel_throttle->recompute_pwm_no_deadzone();
-        channel_rudder->recompute_pwm_no_deadzone();
+        channel_roll->set_pwm_no_deadzone(pwm_roll);
+        channel_pitch->set_pwm_no_deadzone(pwm_pitch);
+        channel_throttle->set_pwm_no_deadzone(channel_throttle->read());
+        channel_rudder->set_pwm_no_deadzone(channel_rudder->read());
+    } else {
+        channel_roll->set_pwm(pwm_roll);
+        channel_pitch->set_pwm(pwm_pitch);
     }
 
-    control_failsafe();
+    control_failsafe(channel_throttle->get_radio_in());
 
     SRV_Channels::set_output_scaled(SRV_Channel::k_throttle, channel_throttle->get_control_in());
 
@@ -231,7 +240,7 @@ void Plane::read_radio()
     tuning.check_input(control_mode);
 }
 
-void Plane::control_failsafe()
+void Plane::control_failsafe(uint16_t pwm)
 {
     if (millis() - failsafe.last_valid_rc_ms > 1000 || rc_failsafe_active()) {
         // we do not have valid RC input. Set all primary channel
@@ -255,27 +264,27 @@ void Plane::control_failsafe()
         if (rc_failsafe_active()) {
             // we detect a failsafe from radio
             // throttle has dropped below the mark
-            failsafe.throttle_counter++;
-            if (failsafe.throttle_counter == 10) {
-                gcs().send_text(MAV_SEVERITY_WARNING, "Throttle failsafe on");
-                failsafe.rc_failsafe = true;
+            failsafe.ch3_counter++;
+            if (failsafe.ch3_counter == 10) {
+                gcs().send_text(MAV_SEVERITY_WARNING, "Throttle failsafe on %u", (unsigned)pwm);
+                failsafe.ch3_failsafe = true;
                 AP_Notify::flags.failsafe_radio = true;
             }
-            if (failsafe.throttle_counter > 10) {
-                failsafe.throttle_counter = 10;
+            if (failsafe.ch3_counter > 10) {
+                failsafe.ch3_counter = 10;
             }
 
-        }else if(failsafe.throttle_counter > 0) {
+        }else if(failsafe.ch3_counter > 0) {
             // we are no longer in failsafe condition
             // but we need to recover quickly
-            failsafe.throttle_counter--;
-            if (failsafe.throttle_counter > 3) {
-                failsafe.throttle_counter = 3;
+            failsafe.ch3_counter--;
+            if (failsafe.ch3_counter > 3) {
+                failsafe.ch3_counter = 3;
             }
-            if (failsafe.throttle_counter == 1) {
-                gcs().send_text(MAV_SEVERITY_WARNING, "Throttle failsafe off");
-            } else if(failsafe.throttle_counter == 0) {
-                failsafe.rc_failsafe = false;
+            if (failsafe.ch3_counter == 1) {
+                gcs().send_text(MAV_SEVERITY_WARNING, "Throttle failsafe off %u", (unsigned)pwm);
+            } else if(failsafe.ch3_counter == 0) {
+                failsafe.ch3_failsafe = false;
                 AP_Notify::flags.failsafe_radio = false;
             }
         }
@@ -316,7 +325,7 @@ void Plane::trim_control_surfaces()
         SRV_Channels::set_trim_to_servo_out_for(SRV_Channel::k_dspoilerLeft1);
         SRV_Channels::set_trim_to_servo_out_for(SRV_Channel::k_dspoilerLeft2);
         SRV_Channels::set_trim_to_servo_out_for(SRV_Channel::k_dspoilerRight1);
-        SRV_Channels::set_trim_to_servo_out_for(SRV_Channel::k_dspoilerRight2);
+        SRV_Channels::set_trim_to_servo_out_for(SRV_Channel::k_dspoilerRight1);
     }
 
     if (SRV_Channels::get_output_scaled(SRV_Channel::k_flap_auto) == 0 &&
